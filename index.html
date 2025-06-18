@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ecrin Web</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 80px;
+      background: #fff0f6;
+      overflow-x: hidden;
+      position: relative;
+      overflow-y: hidden;
+    }
+    #question {
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: bold;
+      position: relative;
+      z-index: 10;
+    }
+    button {
+      padding: 12px 25px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      margin: 10px;
+      transition: transform 0.2s ease;
+      position: relative;
+      z-index: 10;
+    }
+    #yes {
+      background: #ff4d6d;
+      color: white;
+      box-shadow: 0 0 10px #ff4d6d;
+    }
+    #yes:hover {
+      transform: scale(1.1);
+    }
+    #no {
+      background: #888;
+      color: white;
+    }
+    #music-button {
+      background: #ff85a2;
+      color: white;
+      font-weight: bold;
+      margin-top: 20px;
+      box-shadow: 0 0 8px #ff85a2;
+      position: relative;
+      z-index: 10;
+      display: none;
+    }
+    #music-button:hover {
+      transform: scale(1.1);
+    }
+    #message {
+      margin-top: 40px;
+      font-size: 28px;
+      font-weight: bold;
+      min-height: 50px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Ecrin yazıları container */
+    #background-texts {
+      pointer-events: none; /* tıklamaları engelle */
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .ecrin-text {
+      position: absolute;
+      font-weight: bold;
+      color: rgba(255, 77, 109, 0.15);
+      user-select: none;
+      white-space: nowrap;
+      will-change: transform, opacity;
+      font-size: 18px;
+    }
+
+    /* Kalplerin animasyonu */
+    .heart {
+      position: fixed;
+      bottom: 0;
+      font-size: 24px;
+      pointer-events: none;
+      animation-name: floatUp;
+      animation-timing-function: ease-out;
+      animation-fill-mode: forwards;
+      z-index: 20;
+      user-select: none;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-150px);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="background-texts"></div>
+
+<div id="question">İsminiz Ecrin mi?</div>
+<button id="yes">Evet ❤️</button>
+<button id="no">Hayır</button>
+<div id="message"></div>
+
+<!-- Müzik Başlat Butonu -->
+<button id="music-button">Müziği Başlat ❤️</button>
+
+<audio id="bg-music" src="muzik.mp3" loop></audio>
+
+<script>
+  const yesBtn = document.getElementById('yes');
+  const noBtn = document.getElementById('no');
+  const message = document.getElementById('message');
+  const question = document.getElementById('question');
+  const musicBtn = document.getElementById('music-button');
+  const bgMusic = document.getElementById('bg-music');
+  const backgroundTexts = document.getElementById('background-texts');
+
+  const popSound = new Audio('https://actions.google.com/sounds/v1/cartoon/pop.ogg');
+  popSound.load();
+
+  let heartInterval = null;
+
+  // Ecrin yazılarını tutan dizi
+  let ecrinTexts = [];
+  let animationId;
+
+  // Yazı sayısı
+  const NUM_TEXTS = 60;
+
+  // Yazıların hareket parametrelerini tutan obje şablonu:
+  // {el, x, y, vx, vy, opacity, opacityDecay}
+
+  function createEcrinTexts() {
+    for(let i = 0; i < NUM_TEXTS; i++) {
+      const el = document.createElement('div');
+      el.className = 'ecrin-text';
+      el.textContent = 'Ecrin';
+
+      // Başlangıç pozisyonları rastgele (yani sayfa içinde)
+      let x = Math.random() * window.innerWidth;
+      let y = Math.random() * window.innerHeight;
+
+      // Hızlar rastgele -0.3 ila +0.3 px/frame arası (hem x hem y)
+      let vx = (Math.random() - 0.5) * 0.6;
+      let vy = (Math.random() - 0.5) * 0.6;
+
+      // Başlangıç opaklığı tam 1
+      let opacity = 1;
+
+      // Opaklık azalma hızı, 0.0008 ila 0.002 arası rastgele
+      let opacityDecay = 0.0008 + Math.random() * 0.0012;
+
+      // Font size rastgele 14-22 px arası
+      el.style.fontSize = (14 + Math.random() * 8) + 'px';
+
+      backgroundTexts.appendChild(el);
+
+      ecrinTexts.push({el, x, y, vx, vy, opacity, opacityDecay});
+    }
+  }
+
+  function animate() {
+    for (let i = ecrinTexts.length - 1; i >= 0; i--) {
+      let obj = ecrinTexts[i];
+
+      obj.x += obj.vx;
+      obj.y += obj.vy;
+      obj.opacity -= obj.opacityDecay;
+
+      // Eğer opacity sıfırın altına düştüyse, başa sar (yeni rastgele pozisyon ve opaklık)
+      if (obj.opacity <= 0) {
+        obj.x = Math.random() * window.innerWidth;
+        obj.y = Math.random() * window.innerHeight;
+        obj.opacity = 1;
+        obj.vx = (Math.random() - 0.5) * 0.6;
+        obj.vy = (Math.random() - 0.5) * 0.6;
+        obj.opacityDecay = 0.0008 + Math.random() * 0.0012;
+      }
+
+      // Ekran dışına çıkarsa diğer tarafa geçir (wrap around)
+      if (obj.x < -50) obj.x = window.innerWidth + 50;
+      else if (obj.x > window.innerWidth + 50) obj.x = -50;
+
+      if (obj.y < -20) obj.y = window.innerHeight + 20;
+      else if (obj.y > window.innerHeight + 20) obj.y = -20;
+
+      obj.el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
+      obj.el.style.opacity = obj.opacity;
+    }
+
+    animationId = requestAnimationFrame(animate);
+  }
+
+  function clearEcrinTexts() {
+    cancelAnimationFrame(animationId);
+    ecrinTexts.forEach(o => {
+      if (o.el.parentNode) o.el.parentNode.removeChild(o.el);
+    });
+    ecrinTexts = [];
+  }
+
+  yesBtn.onclick = () => {
+    popSound.currentTime = 0;
+    popSound.play();
+
+    question.style.display = 'none';
+    message.textContent = "SENİ ÇOOOK SEVİYORUM GÜZELİMM ❤️‍🔥";
+
+    musicBtn.style.display = 'inline-block'; // Görünür yap
+
+    if (!heartInterval) {
+      heartInterval = setInterval(() => {
+        const heart = document.createElement('div');
+        heart.className = 'heart';
+        heart.style.left = Math.random() * 100 + 'vw';
+        heart.style.color = '#ff3366';
+        heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        heart.textContent = '❤️';
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 4000);
+      }, 250);
+    }
+
+    // Kaydıran yazıları kaldır
+    clearEcrinTexts();
+  };
+
+  noBtn.onclick = () => {
+    popSound.currentTime = 0;
+    popSound.play();
+
+    question.style.display = 'none';
+    message.textContent = "Bu web sitesi sadece Ecrin içindir ❌";
+
+    musicBtn.style.display = 'none';
+
+    if (heartInterval) {
+      clearInterval(heartInterval);
+      heartInterval = null;
+    }
+    document.querySelectorAll('.heart').forEach(h => h.remove());
+
+    // Kaydıran yazıları kaldır
+    clearEcrinTexts();
+  };
+
+  musicBtn.onclick = () => {
+    bgMusic.play().then(() => {
+      musicBtn.style.display = 'none';
+    }).catch(e => {
+      console.warn("Müzik başlatılamadı:", e);
+    });
+  };
+
+  // Sayfa yüklendiğinde ecrin yazıları oluştur ve animasyonu başlat
+  window.onload = () => {
+    createEcrinTexts();
+    animate();
+  };
+
+  // Sayfa boyutu değişince yazıları sıfırla ve yeniden oluştur
+  window.onresize = () => {
+    clearEcrinTexts();
+    createEcrinTexts();
+  };
+</script>
+
+</body>
+</html>
